@@ -2,6 +2,10 @@ import psutil
 import subprocess
 import time
 
+#Mostrar los procesos
+
+
+
 def iniciar_calculadora():
   """Inicia la calculadora y devuelve el objeto del proceso."""
   try:
