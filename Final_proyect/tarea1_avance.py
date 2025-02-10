@@ -1,4 +1,5 @@
 import psutil
+import subprocess
 #Funcion para listar los procesos en ejecucion
 def listar_procesos():
     #Imprimir encabezado de la tabla
@@ -10,9 +11,21 @@ def listar_procesos():
         info = proceso.info #Obtener informacion del proceso
         print(f"{info['pid']:<10}{info['name']:<30}{info['cpu_percent']:<15.2f}{info['memory_percent']:<15.2f}")
 
+#Funcion para iniciar un proceso
+def iniciar_proceso():
+    nombre_proceso = input("Ingrese el nombre del proceso a inciar: ")
+    try: 
+        subprocess.Popen(nombre_proceso, shell=True)
+        print(f"Proceso {nombre_proceso} iniciado correctamente")
+        print("Actualizando lista de procesos...")
+        listar_procesos()
+    except Exception as e:
+        print(f"Error al iniciar el proceso: {e}")
+
 #Funcion para mostrar el menu
 def mostrar_menu(): 
-    while True:
+    salir = False
+    while not salir:
         print("\n Gestion de  Procesos")
         print("1. Iniciar un proceso")
         print("2. Matar un proceso")
@@ -23,9 +36,14 @@ def mostrar_menu():
 
         if opcion == "4":
             print("Saliendo...")
+            salir = True
         #aqui faltaria meter el proceso de cada opcion
-        elif opcion in ["1", "2", "3"]:
-            print(f"Opcion {opcion} seleccionada")
+        elif opcion == "1":
+            iniciar_proceso()
+        elif opcion == "2": 
+            print("Procedimiento para detener un proceso")
+        elif opcion == "3":
+            print("Procedimiento para monitorear un proceso")
         else: 
             print("Opcion no valida, intente de nuevo")
 
