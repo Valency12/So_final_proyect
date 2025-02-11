@@ -1,134 +1,137 @@
+import socket
 import psutil
 import subprocess
 from prettytable import PrettyTable
 import time
 
-#Funcion para listar los procesos en ejecucion
+def monitor_proceso(pid):
+    """
+    Monitorea un proceso dado su PID.
+    Retorna información sobre el proceso, incluyendo nombre, estado, uso de CPU y memoria.
+    
+    :param pid: Identificador del proceso a monitorear
+    :return: Cadena con la información del proceso o mensaje de error si no se encuentra
+    """
+    try:
+        p = psutil.Process(pid)
+        info = f"Monitoring process {pid}:\n"
+        info += f"Name: {p.name()}\n"
+        info += f"Status: {p.status()}\n"
+        info += f"CPU Usage: {p.cpu_percent(interval=1.0)}%\n"
+        info += f"Memory Usage: {p.memory_percent()}%\n"
+        return info
+    except psutil.NoSuchProcess:
+        return f"No se encontró ningún proceso con PID {pid}."
+    except psutil.AccessDenied:
+        return f"Acceso denegado al intentar monitorear el proceso con PID {pid}."
+    except Exception as e:
+        return f"Error al monitorear el proceso con PID {pid}: {e}"
+
 def listar_procesos():
-    #Imprimir encabezado de la tabla
-    print(f"{'PID':<10}{'Nombre':<30}{'Uso de CPU (%)':<15}{'Uso de Memoria (%)':<15}")
-    print("-" * 70)
-    #:<15, :<30, :>10.2f son especificadores de formato en python
-    #Iterar sobre los procesos en ejecucion y obtener sus atributos
+    """
+    Lista los procesos activos en el sistema.
+    Devuelve una tabla con los PID, nombres, uso de CPU y memoria de cada proceso.
+    
+    :return: Cadena con la tabla de procesos en formato de texto
+    """
+    tabla = PrettyTable()
+    tabla.field_names = ["PID", "Nombre", "Uso de CPU (%)", "Uso de Memoria (%)"]
+    
     for proceso in psutil.process_iter(attrs=['pid', 'name', 'cpu_percent', 'memory_percent']):
-        info = proceso.info #Obtener informacion del proceso
-        print(f"{info['pid']:<10}{info['name']:<30}{info['cpu_percent']:<15.2f}{info['memory_percent']:<15.2f}")
+        info = proceso.info
+        tabla.add_row([info['pid'], info['name'], info['cpu_percent'], info['memory_percent']])
+    
+    return tabla.get_string()
 
-#Funcion para iniciar un proceso
-def iniciar_proceso():
-    nombre_proceso = input("Ingrese el nombre del proceso a inciar: ")
-    try: 
+def iniciar_proceso(nombre_proceso):
+    """
+    Inicia un nuevo proceso dado su nombre.
+    
+    :param nombre_proceso: Nombre del proceso a iniciar
+    :return: Mensaje indicando si el proceso se inició correctamente o si hubo un error
+    """
+    try:
         subprocess.Popen(nombre_proceso, shell=True)
-        print(f"Proceso {nombre_proceso} iniciado correctamente")
-        print("Actualizando lista de procesos...")
-        listar_procesos()
+        return f"Proceso {nombre_proceso} iniciado correctamente"
     except Exception as e:
-        print(f"Error al iniciar el proceso: {e}")
+        return f"Error al iniciar el proceso: {e}"
 
-def matar_proceso():
+def matar_proceso(pid):
+    """
+    Termina un proceso dado su PID.
+    
+    :param pid: Identificador del proceso a terminar
+    :return: Mensaje indicando si el proceso se cerró correctamente o si hubo un error
+    """
     try:
-        pid = int(input("Ingrese el PID del proceso a matar: "))
-        proceso = psutil.Process(pid)
-        print(f"Proceso con PID {pid} terminado correctamente.")
-        listar_procesos()
+        p = psutil.Process(pid)
+        p.terminate()
+        return f"Proceso con PID {pid} terminado correctamente."
     except psutil.NoSuchProcess:
-        print(f"No se encontró ningún proceso con PID {pid}.")
-    except ValueError:
-        print("PID inválido. Debe ser un número entero.")
+        return f"No se encontró ningún proceso con PID {pid}."
+    except psutil.AccessDenied:
+        return f"Acceso denegado al intentar matar el proceso con PID {pid}."
     except Exception as e:
-        print(f"Error al matar el proceso: {e}")
+        return f"Error al matar el proceso con PID {pid}: {e}"
 
-def monitorear_proceso():
+def manejo_cliente(conex, addr):
+    """
+    Maneja la conexión con un cliente, procesando sus solicitudes.
+    
+    :param conex: Objeto de conexión del socket
+    :param addr: Dirección del cliente conectado
+    """
+    with conex:
+        print('Conectado por', addr)
+        try:
+            while True:
+                data = conex.recv(1024)
+                if not data:
+                    break
+                comando = data.decode('utf-8').split()
+                if comando[0] == "listar":
+                    respuesta = listar_procesos()
+                elif comando[0] == "iniciar":
+                    respuesta = iniciar_proceso(comando[1])
+                elif comando[0] == "matar":
+                    respuesta = matar_proceso(int(comando[1]))
+                elif comando[0] == "monitorear":
+                    respuesta = monitor_proceso(int(comando[1]))
+                else:
+                    respuesta = "Comando no reconocido"
+                conex.sendall(respuesta.encode('utf-8'))
+        except Exception as e:
+            print(f"Error en manejo de cliente {addr}: {e}")
+
+def get_private_ipv4():
+    """
+    Obtiene la dirección IPv4 privada del servidor.
+    
+    :return: Dirección IP privada o mensaje de error si no se puede determinar
+    """
     try:
-        pid = int(input("Ingrese el PID del proceso a monitorear: "))
-        if not psutil.pid_exists(pid):  # Check if PID exists before creating the process object
-            raise psutil.NoSuchProcess(pid)
-        proceso = psutil.Process(pid)
+        nombre_host = socket.gethostname()
+        dir_IP = socket.gethostbyname(nombre_host)
+        return dir_IP
+    except socket.gaierror:
+        return "Could not determine private IP address"
 
-        while True:
-            print(f"Proceso con PID: {pid}")
+ip_privada = get_private_ipv4()
+print(f"Server IP: {ip_privada}")
+HOST = ip_privada
+PORT = 65432
 
-            # Memory Information (using psutil.virtual_memory)
-            vm = psutil.virtual_memory()
-            mem_info = proceso.memory_info()
-            memory_table = PrettyTable(["Total(GB)", "Usado(GB)", "Disponible(GB)", "Porcentaje"])
-            memory_table.add_row([
-                f'{vm.total / 1e9:.3f}',
-                f'{mem_info.rss / 1e9:.3f}',
-                f'{(vm.available + mem_info.rss - mem_info.vms) / 1e9:.3f}',
-                vm.percent
-            ])
-            print(memory_table)
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.bind((HOST, PORT))
+    s.listen()
+    print(f"Server listening on {HOST}:{PORT}")
+    while True:
+        try:
+            conex, addr = s.accept()
+            manejo_cliente(conex, addr)
+        except Exception as e:
+            print(f"Error accepting connections: {e}")
 
-            print("----Procesos----")
-            process_table = PrettyTable(['PID', 'PNOMBRE', 'ESTATUS', 'CPU', 'NUM HILOS', 'MEMORIA(MB)'])
-
-            try:  
-                p = psutil.Process(pid)  
-                cpu_percent = p.cpu_percent(interval=0.1)
-                process_table.add_row([
-                    p.pid,
-                    p.name(),
-                    p.status(),
-                    cpu_percent,
-                    p.num_threads(),
-                    f'{p.memory_info().rss / 1e6:.2f}'
-                ])
-            except psutil.NoSuchProcess:
-                print("Proceso terminado")
-                break 
-            except psutil.AccessDenied:
-                print("Acceso denegado")
-                break 
-            except Exception as e:
-                print(f"Error obteniendo información del proceso: {e}")
-
-            print(process_table)
-
-            continuar = input("¿Desea continuar monitoreando? (s/n): ")
-            if continuar.lower() != 's':
-                break
-
-    except psutil.NoSuchProcess:
-        print(f"No se encontró ningún proceso con PID {pid}.")
-    except ValueError:
-        print("PID inválido. Debe ser un número entero.")
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-
-        
-
-#Funcion para mostrar el menu
-def mostrar_menu(): 
-    salir = False
-    while not salir:
-        print("\n Gestión de Procesos")
-        print("1. Iniciar un proceso")
-        print("2. Matar un proceso")
-        print("3. Monitorear un proceso")
-        print("4. Salir")
-
-        opcion = input("Seleccione una opcion: ")
-
-        if opcion == "4":
-            print("Saliendo...")
-            salir = True
-        
-        elif opcion == "1":
-            iniciar_proceso()
-
-        elif opcion == "2": 
-            print("Procedimiento para detener un proceso")
-            matar_proceso()
-
-        elif opcion == "3":
-            print("Procedimiento para monitorear un proceso")
-            monitorear_proceso()
-
-        else: 
-            print("Opcion no valida, intente de nuevo")
-
-#Punto de entrada principal del programa
 if __name__ == "__main__":
     listar_procesos()
     mostrar_menu()
