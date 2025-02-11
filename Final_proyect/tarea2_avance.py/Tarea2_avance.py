@@ -14,11 +14,12 @@ def mostrar_menu():
         print("1. Listar procesos")
         print("2. Iniciar un proceso")
         print("3. Matar un proceso")
-        print("4. Salir")
+        print("4. Monitorear un proceso")
+        print("5. Salir")
 
         opcion = input("Seleccione una opcion: ")
 
-        if opcion == "4":
+        if opcion == "5":
             print("Saliendo...")
             salir = True
         elif opcion == "1":
@@ -29,6 +30,9 @@ def mostrar_menu():
         elif opcion == "3":
             pid = input("Ingrese el PID del proceso a matar: ")
             send_command(f"matar {pid}")
+        elif opcion == "4":
+            pid = input("Ingrese el PID del proceso a monitorear: ")
+            send_command(f"monitorear {pid}")
         else:
             print("Opcion no valida, intente de nuevo")
 

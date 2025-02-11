@@ -2,6 +2,23 @@ import socket
 import psutil
 import subprocess
 from prettytable import PrettyTable
+import time
+
+def monitor_proceso(pid):
+    try:
+        p = psutil.Process(pid)
+        info = f"Monitoring process {pid}:\n"
+        info += f"Name: {p.name()}\n"
+        info += f"Status: {p.status()}\n"
+        info += f"CPU Usage: {p.cpu_percent(interval=1.0)}%\n"
+        info += f"Memory Usage: {p.memory_percent()}%\n"
+        return info
+    except psutil.NoSuchProcess:
+        return f"No se encontró ningún proceso con PID {pid}."
+    except psutil.AccessDenied:
+        return f"Acceso denegado al intentar monitorear el proceso con PID {pid}."
+    except Exception as e:
+        return f"Error al monitorear el proceso con PID {pid}: {e}"
 
 def listar_procesos():
     tabla = PrettyTable()
@@ -47,6 +64,8 @@ def manejo_cliente(conex, addr):
                     respuesta = iniciar_proceso(comando[1])
                 elif comando[0] == "matar":
                     respuesta = matar_proceso(int(comando[1]))
+                elif comando[0] == "monitorear":
+                    respuesta = monitor_proceso(int(comando[1]))
                 else:
                     respuesta = "Comando no reconocido"
                 conex.sendall(respuesta.encode('utf-8'))
