@@ -37,6 +37,6 @@ def mostrar_menu():
             print("Opcion no valida, intente de nuevo")
 
 if __name__ == "__main__":
-    HOST = "192.168.56.1"  # Asegurarse que este numero sea el mismo que el de server.py
+    HOST = "10.74.80.170"  # Asegurarse que este numero sea el mismo que el de server.py
     PORT = 65432
     mostrar_menu()
