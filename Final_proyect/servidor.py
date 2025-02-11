@@ -74,6 +74,17 @@ def matar_proceso(pid):
     except Exception as e:
         return f"Error al matar el proceso con PID {pid}: {e}"
 
+def monitorear_proceso(pid):
+    try:
+        p = psutil.Process(pid)
+        info = p.as_dict(attrs=['pid', 'name', 'cpu_percent', 'memory_percent'])
+        return f"PID: {info['pid']}, Nombre: {info['name']}, Uso de CPU: {info['cpu_percent']}%, Uso de Memoria: {info['memory_percent']}%"
+    except psutil.NoSuchProcess:
+        return f"No se encontró ningún proceso con PID {pid}."
+    except Exception as e:
+        return f"Error al monitorear el proceso con PID {pid}: {e}"
+
+
 def manejo_cliente(conex, addr):
     """
     Maneja la conexión con un cliente, procesando sus solicitudes.
@@ -97,6 +108,8 @@ def manejo_cliente(conex, addr):
                     respuesta = matar_proceso(int(comando[1]))
                 elif comando[0] == "monitorear":
                     respuesta = monitor_proceso(int(comando[1]))
+                elif comando[0] == "monitorear":
+                    respuesta = monitorear_proceso(int(comando[1]))
                 else:
                     respuesta = "Comando no reconocido"
                 conex.sendall(respuesta.encode('utf-8'))
