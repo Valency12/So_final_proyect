@@ -4,28 +4,6 @@ import subprocess
 from prettytable import PrettyTable
 import time
 
-def monitor_proceso(pid):
-    """
-    Monitorea un proceso dado su PID.
-    Retorna información sobre el proceso, incluyendo nombre, estado, uso de CPU y memoria.
-    
-    :param pid: Identificador del proceso a monitorear
-    :return: Cadena con la información del proceso o mensaje de error si no se encuentra
-    """
-    try:
-        p = psutil.Process(pid)
-        info = f"Monitoring process {pid}:\n"
-        info += f"Name: {p.name()}\n"
-        info += f"Status: {p.status()}\n"
-        info += f"CPU Usage: {p.cpu_percent(interval=1.0)}%\n"
-        info += f"Memory Usage: {p.memory_percent()}%\n"
-        return info
-    except psutil.NoSuchProcess:
-        return f"No se encontró ningún proceso con PID {pid}."
-    except psutil.AccessDenied:
-        return f"Acceso denegado al intentar monitorear el proceso con PID {pid}."
-    except Exception as e:
-        return f"Error al monitorear el proceso con PID {pid}: {e}"
 
 def listar_procesos():
     """
@@ -75,6 +53,13 @@ def matar_proceso(pid):
         return f"Error al matar el proceso con PID {pid}: {e}"
 
 def monitorear_proceso(pid):
+    """
+    Monitorea un proceso dado su PID.
+    Retorna información sobre el proceso, incluyendo nombre, estado, uso de CPU y memoria.
+    
+    :param pid: Identificador del proceso a monitorear
+    :return: Cadena con la información del proceso o mensaje de error si no se encuentra
+    """
     try:
         p = psutil.Process(pid)
         info = p.as_dict(attrs=['pid', 'name', 'cpu_percent', 'memory_percent'])
